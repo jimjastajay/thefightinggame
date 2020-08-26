@@ -77,12 +77,6 @@ void loop() {
     }
   }
 
-  if (buttonMultiClicked()) {
-    if (buttonClickCount() == 4) {
-      getNumberOfConnections();
-    }
-  }
-
   if (buttonLongPressed()) {
     getConnections();
   }
