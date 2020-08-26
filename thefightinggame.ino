@@ -13,8 +13,7 @@ FighterType four = {MAGENTA};
 FighterType fighterList[4] = {{one}, {two}, {three}, {four}};
 byte currentType = -1;
 
-Timer timer;
-bool enableTimer;
+int currentNumberOfConnections;
 
 void setup() {
   resetTile();
@@ -49,18 +48,18 @@ void markReady() {
 
 }
 
-void getNumberOfConnections() {
+void getConnections() {
   int count = 0;
   setColor(OFF);
   FOREACH_FACE(f) {
     if (!isValueReceivedOnFaceExpired(f)) {//a neighbor!
       count += 1;
+      setColorOnFace(CYAN, f);
     }
   }
+  currentNumberOfConnections = count;
 
-  for (int i = 0; i < count; i++) {
-    setColorOnFace(CYAN, i);
-  }
+  
 }
 
 void loop() {
@@ -69,8 +68,7 @@ void loop() {
     nextColor();
   }
   if (buttonSingleClicked()) {
-    //    decreaseHealth();
-    getNumberOfConnections();
+    decreaseHealth();
   }
 
   if (buttonMultiClicked()) {
@@ -86,7 +84,7 @@ void loop() {
   }
 
   if (buttonLongPressed()) {
-    markReady();
+    getConnections();
   }
 
 }
