@@ -13,6 +13,8 @@ FighterType four = {MAGENTA};
 FighterType fighterList[4] = {{one}, {two}, {three}, {four}};
 byte currentType = -1;
 
+Timer timer;
+bool enableTimer;
 
 void setup() {
   resetTile();
@@ -28,19 +30,37 @@ void nextColor() {
 
 void decreaseHealth() {
 
-  if (health > 0){
+  if (health > 0) {
     health -= 1;
-    for(int i = 5; i >= health; i--){
+    for (int i = 5; i >= health; i--) {
       setColorOnFace(OFF, i);
     }
-  }    
+  }
 
 }
 
-void resetTile(){
+void resetTile() {
   health = 6;
   currentType = -1;
   setColor(WHITE);
+}
+
+void markReady() {
+
+}
+
+void getNumberOfConnections() {
+  int count = 0;
+  setColor(OFF);
+  FOREACH_FACE(f) {
+    if (!isValueReceivedOnFaceExpired(f)) {//a neighbor!
+      count += 1;
+    }
+  }
+
+  for (int i = 0; i < count; i++) {
+    setColorOnFace(CYAN, i);
+  }
 }
 
 void loop() {
@@ -48,14 +68,25 @@ void loop() {
   if (buttonDoubleClicked()) {
     nextColor();
   }
-  if(buttonSingleClicked()){
-    decreaseHealth();
+  if (buttonSingleClicked()) {
+    //    decreaseHealth();
+    getNumberOfConnections();
   }
 
-  if(buttonMultiClicked()){
-    if(buttonClickCount() == 3){
+  if (buttonMultiClicked()) {
+    if (buttonClickCount() == 3) {
       resetTile();
     }
+  }
+
+  if (buttonMultiClicked()) {
+    if (buttonClickCount() == 4) {
+      getNumberOfConnections();
+    }
+  }
+
+  if (buttonLongPressed()) {
+    markReady();
   }
 
 }
