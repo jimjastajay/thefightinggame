@@ -38,6 +38,7 @@ void setup() {
 
 //Moves to the next color/fighter
 void nextColor() {
+  tileState = WAITING;
   currentType += 1;
   if (currentType >= (sizeof(fighterList) / sizeof(fighterList[0]))) {
     currentType = 0;
@@ -59,7 +60,7 @@ void decreaseHealth() {
 void resetTile() {
   health = 6;
   currentType = -1;
-  tileState = WAITING;
+  tileState = NOCONFIG;
   isCenterTile = false;
   setValueSentOnAllFaces(tileState);
   setColor(WHITE);
