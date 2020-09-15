@@ -1,18 +1,26 @@
 #define KINDABLUE makeColorRGB(0, 232, 209)
 #define GREY makeColorRGB(128, 128, 128)
 
-enum TileStates {NONE, WAITING, MIDDLEREADY, READY, INFIGHT, DEAD};
-enum FighterConfigs {NOCONFIG, BALANCED, ATTACK, DEFENSE};
+enum TileStates {NONE, WAITING, MIDDLEREADY, READY, ATTACKING, DEFENDING, DEAD};
+enum blinkFormations {NOCONFIG, BALANCED, ATTACK, DEFENSE, TAIL};
 
 byte tileState = NONE;
-byte fighterConfig = WAITING;
+byte blinkFormation = NOCONFIG;
 
+byte attackVal[6] = {0, 0, 0, 0, 0, 0};
+byte tailType = TAIL;
+byte blinkColor = 0;
+
+
+/////////////////////////////
 byte health = 6;
 byte attackStrength = 0;
 byte defenseStrength = 0;
 
 int faceOne = -1;
 int faceTwo = -2;
+
+int teamNumber = 0;
 
 struct FighterType {
   Color color;
@@ -36,6 +44,16 @@ void setup() {
   resetTile();
 }
 
+//Resets the tile to it's basic setting
+void resetTile() {
+  health = 6;
+  currentType = -1;
+  tileState = WAITING;
+  isCenterTile = false;
+  setValueSentOnAllFaces(tileState);
+  setColor(WHITE);
+}
+
 //Moves to the next color/fighter
 void nextColor() {
   tileState = WAITING;
@@ -54,16 +72,6 @@ void decreaseHealth() {
       setColorOnFace(OFF, i);
     }
   }
-}
-
-//Resets the tile to it's basic setting
-void resetTile() {
-  health = 6;
-  currentType = -1;
-  tileState = NOCONFIG;
-  isCenterTile = false;
-  setValueSentOnAllFaces(tileState);
-  setColor(WHITE);
 }
 
 //Lights up the number of current connections
@@ -102,15 +110,15 @@ void setConfiguration() {
 
     int distance = abs(faceOne - faceTwo);
     if (distance == 3) {
-      fighterConfig = ATTACK;
+      blinkFormation = ATTACK;
       setColor(ORANGE);
     }
     else if (distance == 1 || distance == 5) {
-      fighterConfig = DEFENSE;
+      blinkFormation = DEFENSE;
       setColor(BLUE);
     }
     else {
-      fighterConfig = BALANCED;
+      blinkFormation = BALANCED;
       setColor(KINDABLUE);
     }
 
@@ -125,7 +133,7 @@ void listenForConnections() {
     FOREACH_FACE(f) {
       if (!isValueReceivedOnFaceExpired(f)) {//a neighbor!
         if (getLastValueReceivedOnFace(f) == MIDDLEREADY) {//a neighbor saying GO!
-          setColorOnFace(WHITE, getOppositeFace(f)); 
+          setColorOnFace(WHITE, getOppositeFace(f));
           tileState = READY;
         }
       }
@@ -160,25 +168,147 @@ int getOppositeFace(int s) {
 
 }
 
+///// Getting blink color & formation data //////
+byte getBlinkColor(byte data) {
+  return (data >> 4);//returns 1st and 2nd bit
+}
+byte getBlinkFormation(byte data) {
+  return ((data >> 2) & 3);//returns 3rd and 4th bit
+}
+////////////////
+
 void loop() {
 
-  listenForConnections();
-
   if (buttonDoubleClicked()) {
-    nextColor();
+    blinkColor = (blinkColor + 1) % 4;
   }
-  if (buttonSingleClicked()) {
-    decreaseHealth();
-  }
+  
+  byte firstNeighborFace = 6;
+  byte secondNeighborFace = 6;
+  byte neighborsFound = 0;
 
-  if (buttonMultiClicked()) {
-    if (buttonClickCount() == 3) {
-      resetTile();
+  Color displayColor;
+    switch (blinkColor) {
+      case 0:
+        displayColor = RED;
+        break;
+      case 1:
+        displayColor = YELLOW;
+        break;
+      case 2:
+        displayColor = GREEN;
+        break;
+      case 3:
+        displayColor = MAGENTA;
+        break;
+    }
+    setColor(displayColor);
+
+  FOREACH_FACE(f) {
+
+    if (!isValueReceivedOnFaceExpired(f)) {//neighbor!
+      byte neighborData = getLastValueReceivedOnFace(f);
+
+      if (firstNeighborFace == 6) {
+        neighborsFound += 1;
+        firstNeighborFace = f;
+        //        setColorOnFace(CYAN, firstNeighborFace);
+        //        setColorOnFace(WHITE, getOppositeFace(f));
+      }
+      else {
+        if (secondNeighborFace == 6) {
+          neighborsFound += 1;
+          secondNeighborFace = f;
+          //          setColorOnFace(WHITE, getOppositeFace(f));
+          //          setColorOnFace(CYAN, secondNeighborFace);
+        }
+      }
+
+      //      if (getBlinkColor(neighborData) == blinkColor) { //same color!
+      //        neighborsFound++;
+      //        if (firstNeighborFace == 6) {
+      //          firstNeighborFace = f;
+      //        }
+      //        else if (secondNeighborFace == 6) {
+      //          secondNeighborFace = f;
+      //        }
+      //      }
+
     }
   }
 
-  if (buttonLongPressed()) {
-    getConnections();
+
+
+  // If you find one neighbor, you're checking to see what config your neighbor is in.
+  if (neighborsFound == 1) {
+    byte neighborFormation = getBlinkFormation(getLastValueReceivedOnFace(firstNeighborFace));
+    
+    switch (neighborFormation) {
+      case BALANCED:
+        tailType = BALANCED;
+        break;
+      case ATTACK:
+        tailType = ATTACK;
+        break;
+      case TAIL:
+        tailType = TAIL;
+        break;
+    }
+
+    
+    
   }
+  else if (neighborsFound == 2) {
+    if (abs(firstNeighborFace - secondNeighborFace) == 1 || abs(firstNeighborFace - secondNeighborFace) == 5) {//defensive cluster
+      blinkFormation = DEFENSE;
+      setColor(BLUE);
+    }
+    else if (abs(firstNeighborFace - secondNeighborFace) == 3) {//attack formation
+      blinkFormation = ATTACK;
+      setColor(ORANGE);
+    }
+    else {//balance formation
+      blinkFormation = BALANCED;
+      setColor(KINDABLUE);
+    }
+  }
+  else {
+    tailType = TAIL;
+    blinkFormation = TAIL;
+  }
+
+  //  //send out face data
+
+  //    byte sendData = (blinkColor << 4) + (blinkFormation << 2);
+  //    setValueSentOnAllFaces(sendData);
+
+
+  //
+  //  switch (blinkFormation) {
+  //    case ATTACK:
+  //      setColorOnFace(ORANGE, random(5));
+  //      break;
+  //    case BALANCED:
+  //      setColorOnFace(BLUE, random(5));
+  //      break;
+  //    case DEFENSE:
+  //      setColorOnFace(OFF, random(5));
+  //      break;
+  //  }
+  //
+  //  switch (tailType) {
+  //    case ATTACK:
+  //      //      setColorOnFace(WHITE, random(5));
+  //      setColor(ORANGE);
+  //      break;
+  //    case BALANCED:
+  //      //      setColorOnFace(MAGENTA, random(5));
+  //      setColor(WHITE);
+  //      break;
+  //    case DEFENSE:
+  //      //      setColorOnFace(MAGENTA, random(5));
+  //      setColor(BLUE);
+  //      break;
+  //  }
 
 }
