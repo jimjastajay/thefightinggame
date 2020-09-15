@@ -106,6 +106,9 @@ void loop() {
     if (buttonClickCount() == 3)
       resetTile();
   }
+  if (buttonSingleClicked()) {
+    decreaseHealth();
+  }
 
   byte firstNeighborFace = 6;
   byte secondNeighborFace = 6;
@@ -172,7 +175,7 @@ void loop() {
         setValueSentOnFace(attacking, f);
       }
     }
-    
+
   }
   else if (neighborsFound == 2) {
     if (abs(firstNeighborFace - secondNeighborFace) == 1 || abs(firstNeighborFace - secondNeighborFace) == 5) {//defensive cluster
@@ -194,18 +197,20 @@ void loop() {
     setColor(WHITE);
   }
 
-    FOREACH_FACE(f) {
+  FOREACH_FACE(f) {
     if (!isValueReceivedOnFaceExpired(f)) {//neighbor!
       byte attackData = getLastValueReceivedOnFace(f);
 
-      if(attackData == true && canTakeDamage){
+      if (attackData == true && canTakeDamage) {
         decreaseHealth();
       }
       canTakeDamage = false;
 
-      
+
     }
   }
+
+
 
   //  //send out face data
 
@@ -241,4 +246,7 @@ void loop() {
   //      break;
   //  }
 
+  for (int i = 5; i >= health; i--) {
+    setColorOnFace(OFF, i);
+  }
 }
