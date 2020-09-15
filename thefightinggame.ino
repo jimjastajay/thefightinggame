@@ -1,13 +1,10 @@
 #define KINDABLUE makeColorRGB(0, 232, 209)
 #define GREY makeColorRGB(128, 128, 128)
 
-enum TileStates {NONE, WAITING, MIDDLEREADY, READY, ATTACKING, DEFENDING, DEAD};
 enum blinkFormations {NOCONFIG, BALANCED, ATTACK, DEFENSE, TAIL};
 
-byte tileState = NONE;
-byte blinkFormation = NOCONFIG;
+byte blinkFormations = NOCONFIG;
 
-byte attackVal[6] = {0, 0, 0, 0, 0, 0};
 byte tailType = TAIL;
 byte blinkColor = 0;
 byte canTakeDamage = true;
@@ -18,11 +15,7 @@ byte attacking = true;
 byte health = 6;
 byte attackStrength = 0;
 byte defenseStrength = 0;
-
-int faceOne = -1;
-int faceTwo = -2;
-
-int teamNumber = 0;
+byte attackVal[6] = {0, 0, 0, 0, 0, 0};
 
 struct FighterType {
   Color color;
@@ -37,8 +30,7 @@ FighterType three = {GREEN, 3, 3};
 FighterType four = {MAGENTA, 3, 3};
 FighterType fighterList[4] = {{one}, {two}, {three}, {four}};
 
-int currentNumberOfConnections;
-int configReady = 0;
+byte teamNumber = 0;
 
 void setup() {
   resetTile();
@@ -47,7 +39,6 @@ void setup() {
 //Resets the tile to it's basic setting
 void resetTile() {
   health = 6;
-  setValueSentOnAllFaces(tileState);
   setColor(WHITE);
 }
 
@@ -138,15 +129,11 @@ void loop() {
       if (firstNeighborFace == 6) {
         neighborsFound += 1;
         firstNeighborFace = f;
-        //        setColorOnFace(CYAN, firstNeighborFace);
-        //        setColorOnFace(WHITE, getOppositeFace(f));
       }
       else {
         if (secondNeighborFace == 6) {
           neighborsFound += 1;
           secondNeighborFace = f;
-          //          setColorOnFace(WHITE, getOppositeFace(f));
-          //          setColorOnFace(CYAN, secondNeighborFace);
         }
       }
     }
