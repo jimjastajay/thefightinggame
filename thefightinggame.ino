@@ -10,6 +10,8 @@ byte blinkFormation = NOCONFIG;
 byte attackVal[6] = {0, 0, 0, 0, 0, 0};
 byte tailType = TAIL;
 byte blinkColor = 0;
+byte canTakeDamage = true;
+byte attacking = true;
 
 
 /////////////////////////////
@@ -34,11 +36,9 @@ FighterType two = {YELLOW, 3, 3};
 FighterType three = {GREEN, 3, 3};
 FighterType four = {MAGENTA, 3, 3};
 FighterType fighterList[4] = {{one}, {two}, {three}, {four}};
-byte currentType = -1;
 
 int currentNumberOfConnections;
 int configReady = 0;
-bool isCenterTile = false;
 
 void setup() {
   resetTile();
@@ -47,21 +47,8 @@ void setup() {
 //Resets the tile to it's basic setting
 void resetTile() {
   health = 6;
-  currentType = -1;
-  tileState = WAITING;
-  isCenterTile = false;
   setValueSentOnAllFaces(tileState);
   setColor(WHITE);
-}
-
-//Moves to the next color/fighter
-void nextColor() {
-  tileState = WAITING;
-  currentType += 1;
-  if (currentType >= (sizeof(fighterList) / sizeof(fighterList[0]))) {
-    currentType = 0;
-  }
-  setColor(fighterList[currentType].color);
 }
 
 //Lowers the fighter's health by 1
@@ -70,73 +57,6 @@ void decreaseHealth() {
     health -= 1;
     for (int i = 5; i >= health; i--) {
       setColorOnFace(OFF, i);
-    }
-  }
-}
-
-//Lights up the number of current connections
-void getConnections() {
-  int count = 0;
-  faceOne = -1;
-  faceTwo = -1;
-  currentNumberOfConnections = 0;
-  setColor(OFF);
-
-  FOREACH_FACE(f) {
-    if (!isValueReceivedOnFaceExpired(f)) {//a neighbor!
-      if (faceOne == -1) {
-        count += 1;
-        faceOne = f;
-        setColorOnFace(CYAN, faceOne);
-      }
-      else {
-        if (faceTwo == -1) {
-          count += 1;
-          faceTwo = f;
-          setColorOnFace(CYAN, faceTwo);
-        }
-      }
-    }
-  }
-  currentNumberOfConnections = count;
-  setConfiguration();
-}
-
-void setConfiguration() {
-  if (currentNumberOfConnections == 2) {
-    isCenterTile = true;
-    setValueSentOnFace(1, faceOne);
-    setValueSentOnFace(1, faceOne);
-
-    int distance = abs(faceOne - faceTwo);
-    if (distance == 3) {
-      blinkFormation = ATTACK;
-      setColor(ORANGE);
-    }
-    else if (distance == 1 || distance == 5) {
-      blinkFormation = DEFENSE;
-      setColor(BLUE);
-    }
-    else {
-      blinkFormation = BALANCED;
-      setColor(KINDABLUE);
-    }
-
-    tileState = MIDDLEREADY;
-    setValueSentOnFace(tileState, faceOne);
-    setValueSentOnFace(tileState, faceTwo);
-  }
-}
-
-void listenForConnections() {
-  if (tileState == WAITING && !isCenterTile) {
-    FOREACH_FACE(f) {
-      if (!isValueReceivedOnFaceExpired(f)) {//a neighbor!
-        if (getLastValueReceivedOnFace(f) == MIDDLEREADY) {//a neighbor saying GO!
-          setColorOnFace(WHITE, getOppositeFace(f));
-          tileState = READY;
-        }
-      }
     }
   }
 }
@@ -182,33 +102,36 @@ void loop() {
   if (buttonDoubleClicked()) {
     blinkColor = (blinkColor + 1) % 4;
   }
-  
+  if (buttonMultiClicked()) {
+    if (buttonClickCount() == 3)
+      resetTile();
+  }
+
   byte firstNeighborFace = 6;
   byte secondNeighborFace = 6;
   byte neighborsFound = 0;
 
   Color displayColor;
-    switch (blinkColor) {
-      case 0:
-        displayColor = RED;
-        break;
-      case 1:
-        displayColor = YELLOW;
-        break;
-      case 2:
-        displayColor = GREEN;
-        break;
-      case 3:
-        displayColor = MAGENTA;
-        break;
-    }
-    setColor(displayColor);
+  switch (blinkColor) {
+    case 0:
+      displayColor = RED;
+      break;
+    case 1:
+      displayColor = YELLOW;
+      break;
+    case 2:
+      displayColor = GREEN;
+      break;
+    case 3:
+      displayColor = MAGENTA;
+      break;
+  }
+  setColor(displayColor);
 
   FOREACH_FACE(f) {
-
     if (!isValueReceivedOnFaceExpired(f)) {//neighbor!
       byte neighborData = getLastValueReceivedOnFace(f);
-
+      attacking = false;
       if (firstNeighborFace == 6) {
         neighborsFound += 1;
         firstNeighborFace = f;
@@ -223,17 +146,6 @@ void loop() {
           //          setColorOnFace(CYAN, secondNeighborFace);
         }
       }
-
-      //      if (getBlinkColor(neighborData) == blinkColor) { //same color!
-      //        neighborsFound++;
-      //        if (firstNeighborFace == 6) {
-      //          firstNeighborFace = f;
-      //        }
-      //        else if (secondNeighborFace == 6) {
-      //          secondNeighborFace = f;
-      //        }
-      //      }
-
     }
   }
 
@@ -242,7 +154,6 @@ void loop() {
   // If you find one neighbor, you're checking to see what config your neighbor is in.
   if (neighborsFound == 1) {
     byte neighborFormation = getBlinkFormation(getLastValueReceivedOnFace(firstNeighborFace));
-    
     switch (neighborFormation) {
       case BALANCED:
         tailType = BALANCED;
@@ -254,8 +165,13 @@ void loop() {
         tailType = TAIL;
         break;
     }
-
-    
+    //Light up opposite side (hopefully)
+    FOREACH_FACE(f) {
+      if (!isValueReceivedOnFaceExpired(f)) {//a neighbor!
+        setColorOnFace(WHITE, getOppositeFace(f));
+        setValueSentOnFace(attacking, f);
+      }
+    }
     
   }
   else if (neighborsFound == 2) {
@@ -275,6 +191,20 @@ void loop() {
   else {
     tailType = TAIL;
     blinkFormation = TAIL;
+    setColor(WHITE);
+  }
+
+    FOREACH_FACE(f) {
+    if (!isValueReceivedOnFaceExpired(f)) {//neighbor!
+      byte attackData = getLastValueReceivedOnFace(f);
+
+      if(attackData == true && canTakeDamage){
+        decreaseHealth();
+      }
+      canTakeDamage = false;
+
+      
+    }
   }
 
   //  //send out face data
