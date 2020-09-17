@@ -3,7 +3,7 @@
 
 enum blinkFormations {NOCONFIG, BALANCED, ATTACK, DEFENSE, TAIL};
 
-byte blinkFormations = NOCONFIG;
+byte blinkFormation = NOCONFIG;
 
 byte tailType = TAIL;
 byte blinkColor = 0;
