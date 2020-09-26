@@ -4,12 +4,12 @@ byte blinkFormation = TAIL;
 byte attackVal[6] = {0, 0, 0, 0, 0, 0};
 
 byte tailType = TAIL;
-
 byte health = 6;
 
-void setup() {
+bool isReady = false;
+byte attackingFace = -1;
 
-}
+void setup() {}
 
 void resetTile() {
   health = 6;
@@ -43,7 +43,10 @@ void loop() {
   //listen for formations
   byte firstNeighborFace = 6;
   byte secondNeighborFace = 6;
+  byte thirdNeighborFace = 6;
   byte neighborsFound = 0;
+
+
 
   FOREACH_FACE(f) {
     if (!isValueReceivedOnFaceExpired(f)) {//neighbor!
@@ -52,12 +55,14 @@ void loop() {
         neighborsFound++;
         if (firstNeighborFace == 6) {
           firstNeighborFace = f;
-        } else if (secondNeighborFace == 6) {
+        }
+        else if (secondNeighborFace == 6) {
           secondNeighborFace = f;
         }
       }
     }
   }//end face loop
+
 
   //evaluate my neighborhood
   if (neighborsFound == 1) {
@@ -73,18 +78,24 @@ void loop() {
         tailType = TAIL;
         break;
     }
-  } else if (neighborsFound == 2) {
+  }
+  else if (neighborsFound == 2) {
     if (abs(firstNeighborFace - secondNeighborFace) == 1 || abs(firstNeighborFace - secondNeighborFace) == 5) {//defensive cluster
       blinkFormation = DEFENSE;
-    } else if (abs(firstNeighborFace - secondNeighborFace) == 3) {//attacky formation
+    }
+    else if (abs(firstNeighborFace - secondNeighborFace) == 3) {//attacky formation
       blinkFormation = ATTACK;
-    } else {//balance formation
+    }
+    else {//balance formation
       blinkFormation = BALANCE;
     }
-  } else {
+  }
+  else {
     tailType = TAIL;
     blinkFormation = TAIL;
   }
+
+
 
   //send out face data
   byte sendData = (blinkColor << 4) + (blinkFormation << 2);
@@ -108,29 +119,46 @@ void loop() {
   }
   setColor(displayColor);
 
-  switch (blinkFormation) {
-    case ATTACK:
-      setColorOnFace(ORANGE, random(5));
-      break;
-    case BALANCE:
-      setColorOnFace(BLUE, random(5));
-      break;
-    case DEFENSE:
-      setColorOnFace(OFF, random(5));
-      break;
-  }
+  //  switch (blinkFormation) {
+  //    case ATTACK:
+  //      setColorOnFace(ORANGE, random(5));
+  //      break;
+  //    case BALANCE:
+  //      setColorOnFace(BLUE, random(5));
+  //      break;
+  //    case DEFENSE:
+  //      setColorOnFace(OFF, random(5));
+  //      break;
+  //  }
+  //
+  //  switch (tailType) {
+  //    case ATTACK:
+  //      setColorOnFace(WHITE, random(5));
+  //      break;
+  //    case BALANCE:
+  //      setColorOnFace(MAGENTA, random(5));
+  //      break;
+  //  }
 
-  switch (tailType) {
-    case ATTACK:
-      setColorOnFace(WHITE, random(5));
-      break;
-    case BALANCE:
-      setColorOnFace(MAGENTA, random(5));
-      break;
-  }
+
+  //  if (thirdNeighborFace != 6) {
+  //    setColorOnFace(RED, 0);
+  //    setColorOnFace(ORANGE, 1);
+  //    setColorOnFace(YELLOW, 2);
+  //    setColorOnFace(GREEN, 3);
+  //    setColorOnFace(BLUE, 4);
+  //    setColorOnFace(MAGENTA, 5);
+  //  }
+
+
 
   for (int i = 5; i >= health; i--) {
     setColorOnFace(OFF, i);
+  }
+
+  //For testing
+  if (neighborsFound == 1) {
+    setColorOnFace(WHITE, getOppositeFace(firstNeighborFace));
   }
 
 }
@@ -141,4 +169,36 @@ byte getBlinkColor(byte data) {
 
 byte getBlinkFormation(byte data) {
   return ((data >> 2) & 3);//returns 3rd and 4th bit
+}
+
+void initiateAttack(){
+//  setValueSentOnFace(9, 
+}
+
+
+int getOppositeFace(int s) {
+
+  int r = -1;
+  switch (s) {
+    case 0:
+      r = 3;
+      break;
+    case 1:
+      r = 4;
+      break;
+    case 2:
+      r = 5;
+      break;
+    case 3:
+      r = 0;
+      break;
+    case 4:
+      r = 1;
+      break;
+    case 5:
+      r = 2;
+      break;
+  }
+  return r;
+
 }
